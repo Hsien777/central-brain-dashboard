@@ -82,6 +82,26 @@
   .news:hover{background:var(--accentbg)}
   .foot{padding:12px 24px;color:var(--sub);font-size:12px;border-top:1px solid var(--line);background:var(--card)}
   .life-ok{color:var(--green)}.life-no{color:var(--red)}
+  /* 停損計算機 */
+  .calc{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 24px;
+    border-bottom:1px solid var(--line);background:var(--card);font-size:13.5px}
+  .calc .tag{font-weight:600;color:var(--ink)}
+  .calc .fld{display:flex;gap:6px;align-items:center;color:var(--sub)}
+  .calc input,.calc select{background:var(--bg);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:4px 8px;font-size:13.5px;font-variant-numeric:tabular-nums;
+    font-family:inherit}
+  .calc input{width:82px;text-align:right}
+  .calc .out{display:flex;gap:8px;align-items:baseline;padding:3px 12px;border-radius:8px;
+    background:var(--warnbg)}
+  .calc .out .lbl{font-size:12px;color:var(--sub)}
+  .calc .out .big{font-size:21px;font-weight:700;color:var(--warn);font-variant-numeric:tabular-nums}
+  .calc .out .sub{font-size:12px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .calc .risk{font-size:12.5px;color:var(--sub);font-variant-numeric:tabular-nums}
+  .calc .risk b{color:var(--ink)}
+  .calc .ok{color:var(--green);font-weight:600}
+  .calc .bad{color:var(--red);font-weight:600}
+  .calc .note{width:100%;font-size:11.5px;color:var(--sub);margin-top:-2px}
+  @media(max-width:820px){.calc input{width:70px}}
 </style>
 </head>
 <body>
@@ -106,6 +126,31 @@
     <option value="mcap">市值大→小</option>
     <option value="mcaps">市值小→大</option>
   </select>
+</div>
+<div class="calc">
+  <span class="tag">🧮 停損計算機</span>
+  <span class="fld">掛單價 <input type="number" id="c_price" step="0.05" placeholder="171"></span>
+  <span class="fld">停損
+    <select id="c_pct">
+      <option value="3">3%</option>
+      <option value="4">4%</option>
+      <option value="5" selected>5%</option>
+      <option value="6">6%</option>
+      <option value="8">8%</option>
+      <option value="10">10%</option>
+    </select>
+  </span>
+  <span class="out">
+    <span class="lbl">停損價</span>
+    <span class="big" id="c_stop">—</span>
+    <span class="sub" id="c_stopsub"></span>
+  </span>
+  <span class="fld">部位 <input type="number" id="c_amt" step="1000" placeholder="20000"> 元</span>
+  <span class="fld">本金 <input type="number" id="c_acct" step="10000" placeholder="100000"></span>
+  <span class="fld">已用風險 <input type="number" id="c_used" step="0.01" placeholder="0"> %</span>
+  <span class="risk" id="c_risk">—</span>
+  <div class="note">停損價已對齊台股最小跳動單位（可直接掛出去）。組合上限 4% = 手上所有部位「全部停損」時最多再賠帳戶 4%。
+    <b>非投資建議，數字是你自己的規則算的。</b></div>
 </div>
 <main>
   <div class="list" id="list"></div>
@@ -132,6 +177,47 @@ function fchg(v){return v==null?"":" "+sgn(v)+"%";}
 
 document.getElementById("wind").textContent = DATA.idxline || "—";
 document.getElementById("hot").textContent = DATA.hot_sectors || "—";
+
+/* ===== 停損計算機 ===== */
+// 台股最小跳動單位:算出來的停損價要能真的掛得出去,不然 162.34 是掛不了的。
+function tick(p){
+  if(p<10) return 0.01; if(p<50) return 0.05; if(p<100) return 0.1;
+  if(p<500) return 0.5; if(p<1000) return 1; return 5;
+}
+function toTick(p){ const t=tick(p); const d=(t+"").split(".")[1];
+  return +( Math.round(p/t)*t ).toFixed(d?d.length:0); }
+const CE = id => document.getElementById(id);
+const CALC_KEYS=["c_price","c_pct","c_amt","c_acct","c_used"];
+
+function calc(){
+  const price=+CE("c_price").value, pct=+CE("c_pct").value;
+  const amt=+CE("c_amt").value, acct=+CE("c_acct").value||100000;
+  const used=+CE("c_used").value||0;
+  if(!(price>0)){ CE("c_stop").textContent="—"; CE("c_stopsub").textContent="";
+    CE("c_risk").textContent="—"; return; }
+  const raw=price*(1-pct/100), stop=toTick(raw);
+  const realPct=(stop-price)/price*100;
+  CE("c_stop").textContent=stop;
+  CE("c_stopsub").textContent=`(${realPct.toFixed(2)}%${Math.abs(realPct+pct)>0.02?" · 已對齊跳動檔":""})`;
+  if(!(amt>0)){ CE("c_risk").textContent="輸入部位金額 → 算股數與風險"; return; }
+  const sh=Math.floor(amt/price), risk=sh*(price-stop);
+  const own=acct>0?risk/acct*100:0, tot=own+used;
+  const ok=tot<=4;
+  CE("c_risk").innerHTML=`→ <b>${sh.toLocaleString()}</b> 股（${(sh*price).toLocaleString()} 元）`
+    +` · 到停損風險 <b>${Math.round(risk).toLocaleString()}</b> 元 = 帳戶 <b>${own.toFixed(2)}%</b>`
+    +` · 組合合計 <b>${tot.toFixed(2)}%</b>`
+    +` <span class="${ok?"ok":"bad"}">${ok?"✅ 在 4% 上限內":"❌ 超過 4% 上限"}</span>`;
+}
+CALC_KEYS.forEach(k=>{
+  const el=CE(k);
+  const sv=localStorage.getItem("calc_"+k);
+  if(sv!==null && k!=="c_price") el.value=sv;
+  el.addEventListener("input",()=>{ localStorage.setItem("calc_"+k,el.value); calc(); });
+  el.addEventListener("change",()=>{ localStorage.setItem("calc_"+k,el.value); calc(); });
+});
+if(!CE("c_acct").value) CE("c_acct").value=100000;
+if(!CE("c_used").value && 2.63>0) CE("c_used").value=2.63;
+calc();
 
 function idxChart(s){
   if(!s || !s.close || s.close.length<2) return "";
