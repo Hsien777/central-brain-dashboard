@@ -275,15 +275,20 @@ function render(){
     if(!gr.length) continue;
     html+=`<div class="grp">${GROUPS[g][0]}（${gr.length}）</div>`;
     html+=`<table><thead><tr>
-      <th class="l">名稱</th><th>收盤</th><th>漲幅</th><th class="l">規模</th>
+      <th class="l">名稱</th><th>收盤</th><th>漲幅</th><th>法人年累</th><th class="l">規模</th>
       <th class="l">融資</th><th class="l">訊號</th></tr></thead><tbody>`;
     for(const r of gr){
       const fin = r.fin_ratio==null?"—":
         `${r.fin_ratio}%${fchg(r.fin_chg)}`+(r.fin_flag?` <span class="flag">⚠${esc(r.fin_flag)}</span>`:"");
+      // 法人年累(守則前置檢查②):淨賣超要打折,所以標出來。2026-08-20 加。
+      const ytd = r.inst_ytd==null?"—":
+        (r.inst_ytd>0 ? `<span class="up">+${Math.round(r.inst_ytd).toLocaleString()}</span>`
+                      : `<span class="dn">${Math.round(r.inst_ytd).toLocaleString()}</span> ⚠`);
       html+=`<tr data-i="${r._i}" ${r._i===selected?'class="sel"':''}>
         <td class="l"><span class="nm">${esc(r.name)}</span><span class="cd">${r.code}</span></td>
         <td>${r.close}</td>
         <td class="${cls(r.chg_pct)}">${sgn(r.chg_pct)}%</td>
+        <td>${ytd}</td>
         <td class="l"><span class="tier">${esc(r.size||"—")}${r.mcap_e?r.mcap_e+"億":""}</span></td>
         <td class="l">${fin}</td>
         <td class="l sigmini">${esc((r.hits||[]).join("、"))}</td></tr>`;
