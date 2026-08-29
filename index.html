@@ -216,7 +216,7 @@ CALC_KEYS.forEach(k=>{
   el.addEventListener("change",()=>{ localStorage.setItem("calc_"+k,el.value); calc(); });
 });
 if(!CE("c_acct").value) CE("c_acct").value=100000;
-if(!CE("c_used").value && 0.0>0) CE("c_used").value=0.0;
+if(!CE("c_used").value && 0>0) CE("c_used").value=0;
 calc();
 
 function idxChart(s){
