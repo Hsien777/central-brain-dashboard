@@ -72,6 +72,11 @@
   .chip{font-size:12.5px;padding:3px 9px;border-radius:20px;background:var(--chip);color:var(--ink)}
   .chip.buy{background:var(--accentbg);color:var(--accent);font-weight:600}
   .chip.warn{background:var(--warnbg);color:var(--warn);font-weight:600}
+  /* 纏論觀察標記:空心框,刻意跟實心的訊號 chip 區隔 —— 它不篩掉任何東西 */
+  .chan{font-size:11.5px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);
+    color:var(--sub);margin-left:4px;white-space:nowrap}
+  .chip.chanc{background:transparent;border:1px dashed var(--line);color:var(--sub)}
+  .chanote{font-size:11.5px;color:var(--sub);line-height:1.7;margin:6px 0 0}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:14px 0;font-size:14px}
   .kv .k{color:var(--sub)}
   .kv .v{text-align:right;font-variant-numeric:tabular-nums}
@@ -327,12 +332,20 @@ function render(){
         <td>${ytd}</td>
         <td class="l"><span class="tier">${esc(r.size||"—")}${r.mcap_e?r.mcap_e+"億":""}</span></td>
         <td class="l">${fin}</td>
-        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${myFlags(r)}</td></tr>`;
+        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${myFlags(r)}${chanMark(r)}</td></tr>`;
     }
     html+="</tbody></table>";
   }
   list.innerHTML=html;
   list.querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>{selected=+tr.dataset.i;render();detail(selected);});
+}
+
+// 纏論觀察標記。舊資料沒有這兩欄 → 回空字串,歷史日不會壞。
+function chanMark(r){
+  let out="";
+  if(r.fractal===true)  out+=`<span class="chan" title="纏論底分型(合併後K線,中間那根低點與高點皆最低)">▲分型</span>`;
+  if(r.macd_div===true) out+=`<span class="chan" title="MACD 柱子面積底背馳:價格創新低但下跌動能縮到前段的 65% 以下">背馳</span>`;
+  return out;
 }
 
 function kSVG(r){
@@ -385,7 +398,14 @@ function detail(i){
       <span class="p ${cls(r.chg_pct)}">${r.close}</span>
       <span class="c ${cls(r.chg_pct)}">${sgn(r.chg_pct)}%</span>
     </div>
-    <div class="drow">${chips}</div>
+    <div class="drow">${chips}${
+      (r.fractal===true||r.macd_div===true)
+        ? (r.fractal===true?'<span class="chip chanc">▲ 纏論底分型</span>':'')
+          +(r.macd_div===true?'<span class="chip chanc">MACD 柱子面積背馳</span>':'')
+        : ''}</div>${
+      (r.fractal===true||r.macd_div===true)
+        ? '<p class="chanote">虛線框 = <b>觀察標記,不參與篩選</b>,也不是買賣訊。<br>2026-09-05 回測:背馳 p=0.13、分型 p=0.23 —— <b>都還沒到能當關卡的門檻</b>。</p>'
+        : ''}
     ${(r.k&&r.k.length>1) ? `<div class="spark">${kSVG(r)}</div>
     <div class="sparkcap">
       <span>近 60 日 K 線 · <span class="up">紅漲</span><span class="dn">綠跌</span>
