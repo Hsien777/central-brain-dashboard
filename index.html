@@ -45,6 +45,30 @@
     background:var(--bg);color:var(--ink)}
   main{display:grid;grid-template-columns:1fr 460px;gap:0;flex:1;min-height:0}
   @media(max-width:1100px){main{grid-template-columns:1fr}}
+  /* 🔴 2026-09-12 修:手機上整個清單看不到。
+     根因是 body{height:100vh;overflow:hidden} —— 版面鎖死在一個視窗高度,
+     而 main 用 flex:1 吃剩餘空間。桌面上 header 只佔一小塊還有剩;
+     手機上 header+篩選+停損計算機就把畫面吃滿,分給 main 的剩餘是 0,
+     min-height:0 又允許它縮到零 → 39 列資料都在 DOM 裡,但高度 0px、整頁不能滾。
+     窄螢幕改成「頁面自然增長、整頁捲動」。 */
+  /* 斷點要跟上面那條對齊:一旦變單欄(≤1100)就必須放開高度鎖,
+     否則 list 和 detail 會擠在同一個視窗高度裡各分到 200px。
+     iPad 橫向正好 1024px,實測 list 只有 207px 要塞 2069px 內容。 */
+  @media(max-width:1100px){
+    body{height:auto;min-height:100vh;overflow:visible}
+    main{flex:none;min-height:auto}
+    .list,.detail{overflow:visible;max-height:none}
+    .detail{border-left:none;border-top:2px solid var(--line);padding:18px 20px 40px}
+    th{position:static}   /* 頁面捲動時 sticky 表頭會黏在畫面外,拿掉 */
+  }
+  /* 以下才是真的手機才要的:縮字級、縮留白、表格自己橫捲 */
+  @media(max-width:820px){
+    .detail{padding:16px 14px 40px}
+    .list{padding:8px 10px 12px}
+    .list table{display:block;overflow-x:auto;white-space:nowrap}
+    h1{font-size:19px}
+    .calc{font-size:13px}
+  }
   .list{overflow:auto;padding:8px 12px 40px}
   .detail{overflow:auto;border-left:1px solid var(--line);background:var(--card);padding:20px 22px}
   .grp{margin:14px 6px 6px;font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.4px}
@@ -340,7 +364,13 @@ function render(){
     html+="</tbody></table>";
   }
   list.innerHTML=html;
-  list.querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>{selected=+tr.dataset.i;render();detail(selected);});
+  list.querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>{
+    selected=+tr.dataset.i; render(); detail(selected);
+    // 手機上明細在清單下面,不捲過去的話點了像沒反應(2026-09-12 加)
+    if(window.matchMedia("(max-width:1100px)").matches){
+      document.getElementById("detail").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+  });
 }
 
 // 纏論觀察標記。舊資料沒有這兩欄 → 回空字串,歷史日不會壞。
