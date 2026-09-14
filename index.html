@@ -343,7 +343,7 @@ CALC_KEYS.forEach(k=>{
   el.addEventListener("change",()=>{ localStorage.setItem("calc_"+k,el.value); calc(); });
 });
 if(!CE("c_acct").value) CE("c_acct").value=100000;
-if(!CE("c_used").value && 0.27>0) CE("c_used").value=0.27;
+if(!CE("c_used").value && 0.17>0) CE("c_used").value=0.17;
 calc();
 
 function idxChart(s){
@@ -402,6 +402,8 @@ function myFlags(r){
   const o=[];
   if((r.industry||"").includes("金融")) o.push("🚫金融股");
   if((r.close||0)>250) o.push("🚫高股價");   // 2026-09-10 他要求拿掉括號那段
+  // 2026-09-14:五日均額 <10 億是第 2 關硬門檻。舊資料沒這欄位 → 不標。
+  if(r.amt5!=null && r.amt5<10) o.push("🚫均額"+r.amt5+"億");
   return o.length ? ' <span class="flag">'+o.join("、")+'</span>' : "";
 }
 
@@ -517,6 +519,33 @@ function detail(i){
   const ma60dir = r.ma60_dir==null?"—":
     `<span class="${dirCls[r.ma60_dir]||''}">${dirTxt[r.ma60_dir]}</span>`
     +(r.ma60_slope==null?"":`<span class="k" style="margin-left:6px">${r.ma60_slope>0?'+':''}${r.ma60_slope}%/5日</span>`);
+  /* ⭐ 2026-09-14:五日均額。用「錢」不是「張」—— 張數會被股價高低扭曲。
+     ≥10 億是 2026-09-14 起第 2 關的硬門檻(飆股率 12.8% vs 8.3%,z=+6.76)。 */
+  const amt = r.amt5==null?"—":
+    `<b class="${r.amt5>=10?'life-ok':'life-no'}">${r.amt5} 億</b>`
+    +`<span class="k" style="margin-left:6px">${r.amt5>=10?'過門檻':'未達 10 億門檻'}</span>`;
+  /* ⭐ 2026-09-14:上方「長黑爆大量」壓力。課程:「長黑爆大量是最大的壓力」,
+     要把那根解決掉。三個關卡:最低價 → 二分之一價(平均成本)→ 最高價。
+     還沒過二分之一價 = 第 1 關硬淘汰。 */
+  const gap = (t)=> (r.close&&t) ? `(還差 ${((t-r.close)/r.close*100).toFixed(1)}%)` : "";
+  let blk="—", blknote="";
+  if(r.blk_pos==="無壓"){
+    blk='<span class="life-ok">上方無長黑壓力 ✓</span>';
+  }else if(r.blk_pos==="已過半"){
+    blk='<span class="life-ok">已過二分之一價 ✓</span>'
+       +`<span class="k" style="margin-left:6px">最高價 ${r.blk_high} 還沒過</span>`;
+  }else if(r.blk_pos==="已過最低"||r.blk_pos==="壓力完整"){
+    blk=`<span class="life-no">${r.blk_pos} ✗</span>`
+       +`<span class="k" style="margin-left:6px">要過 ${r.blk_mid} ${gap(r.blk_mid)}</span>`;
+    blknote=`<div class="chanote" style="margin:2px 0 8px">
+      🧱 <b>上方有一道還沒解決的牆</b>：250 個交易日內出現過一根<b>長黑爆大量</b>
+      （最低 ${r.blk_low}／二分之一 <b>${r.blk_mid}</b>／最高 ${r.blk_high}），
+      收盤一直沒有站上去過。<b>收盤要先過二分之一價 ${r.blk_mid}</b> —— 那是那天買進的人的平均成本
+      —— 這一關才算解決，${r.close ? `現在還差 <b>${((r.blk_mid-r.close)/r.close*100).toFixed(1)}%</b>` : ""}。
+      <span style="opacity:.7">— 回測 6,601 筆：壓力未解那批平均 <b>+0.09%</b>、
+      解除的 <b>+1.31%</b>（t=3.93），2022~2026 五年同向。<b>2026-09-14 起為第 1 關硬淘汰。</b></span>
+    </div>`;
+  }
   const fin = r.fin_ratio==null?"—":
     `融資使用率 <b>${r.fin_ratio}%</b>　日增 <b class="${cls(r.fin_chg)}">${r.fin_chg==null?"—":sgn(r.fin_chg)+"%"}</b>`
     +(r.fin_flag?`　<span class="flag">⚠${esc(r.fin_flag)}</span>`:"");
@@ -532,6 +561,7 @@ function detail(i){
       🏭 同族群（${esc(r.industry||"—")}，${r.sect_n} 檔）今天<b>超額 ${r.sect_excess>0?"+":""}${r.sect_excess}%</b>、<b>${r.sect_up}%</b> 在漲
       <span style="opacity:.7">— 以全市場 1,300+ 檔為基準。回測:族群超額最強 20% 每筆 +2.57%、最弱 −0.05%（t=4.45）。<b>目前只顯示,不參與篩選。</b></span>
     </div>` : ''}
+    ${blknote}
     <div class="drow">${chips}${
       (r.fractal===true||r.macd_div===true)
         ? (r.fractal===true?'<span class="chip chanc">▲ 纏論底分型</span>':'')
@@ -552,8 +582,10 @@ function detail(i){
       <div class="k">產業</div><div class="v">${esc(r.industry||"—")}</div>
       <div class="k">MA5 / MA20 / MA60(生命線)</div><div class="v">${r.ma5??"—"} / ${r.ma20??"—"} / ${r.ma60??"—"}</div>
       <div class="k">季線方向</div><div class="v">${ma60dir}</div>
+      <div class="k">上方長黑壓力</div><div class="v">${blk}</div>
       <div class="k">KD</div><div class="v">K ${r.K??"—"}　D ${r.D??"—"}</div>
       <div class="k">成交量(張)</div><div class="v">${(r.vol||0).toLocaleString()}</div>
+      <div class="k">五日均額</div><div class="v">${amt}</div>
       <div class="k">投信 / 外資買賣超(張)</div><div class="v"><span class="${cls(r.trust)}">${sgn(r.trust)}</span> / <span class="${cls(r.foreign)}">${sgn(r.foreign)}</span></div>
       <div class="k">融資(散戶籌碼)</div><div class="v">${fin}</div>
     </div>
