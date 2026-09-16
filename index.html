@@ -394,7 +394,7 @@ function instTxt(r){
   if(r.inst_streak==null||r.inst_flip==null) return "—";
   const st=r.inst_streak, fl=r.inst_flip;
   const s1=st+"天"+(st>=1&&st<=3?"✅":(st===4?"⚪":(st>=5?"❌":"")));
-  const f1=fl+"%"+(fl<30?"✅":(fl<40?"⚪":(fl<=50?"⚠️":"❌")));
+  const f1=fl+"%"+(fl<40?"✅":"❌");   // 2026-09-16 起 <40% 放行、≥40% 淘汰
   return s1+" "+f1;
 }
 
