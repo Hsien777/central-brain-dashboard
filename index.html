@@ -555,7 +555,7 @@ function detail(i){
     </div>
     ${r.sect_excess!=null ? `<div class="chanote" style="margin:2px 0 8px">
       🏭 同族群（${esc(r.industry||"—")}，${r.sect_n} 檔）今天<b>超額 ${r.sect_excess>0?"+":""}${r.sect_excess}%</b>、<b>${r.sect_up}%</b> 在漲
-      <span style="opacity:.7">— 以全市場 1,300+ 檔為基準。回測:族群超額最強 20% 每筆 +2.57%、最弱 −0.05%（t=4.45）。<b>目前只顯示,不參與篩選。</b></span>
+      <span style="opacity:.7">— 以全市場 1,300+ 檔為基準。<b>僅供參考,不參與篩選</b>(全市場回測效果不穩定)。</span>
     </div>` : ''}
     ${blknote}
     <div class="drow">${chips}${
