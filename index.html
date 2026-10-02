@@ -139,6 +139,8 @@
   .up{color:var(--red)}.dn{color:var(--green)}
   .tier{font-size:12px;padding:1px 6px;border-radius:4px;background:var(--chip);color:var(--sub)}
   .flag{color:var(--warn);font-size:12px;font-weight:600}
+  .wt{display:inline-block;margin-left:6px;padding:0 6px;border-radius:9px;font-size:12px;font-weight:600;
+      color:var(--accent);border:1px solid var(--accent)}
   .sigmini{font-size:12px;color:var(--sub)}
   .empty{color:var(--sub);padding:30px;text-align:center}
   /* detail */
@@ -411,7 +413,8 @@ function render(){
   if(midOnly) rows=rows.filter(r=>r.size!=="大型");
   if(noFin)   rows=rows.filter(r=>!r.fin_flag);
   if(buyOnly) rows=rows.filter(r=>BUYGROUPS.has(r._g));
-  document.getElementById("cnt").textContent = "顯示 "+rows.length+" 檔";
+  document.getElementById("cnt").textContent = "顯示 "+rows.length+" 檔"
+    + (DATA.weight_err ? "(權值股標示今天沒有資料:"+DATA.weight_err+")" : "");   // 沒標 ≠ 不是權值股
   const cmp={chg:(a,b)=>b.chg_pct-a.chg_pct,chgu:(a,b)=>a.chg_pct-b.chg_pct,
     mcap:(a,b)=>(b.mcap_e||0)-(a.mcap_e||0),mcaps:(a,b)=>(a.mcap_e||0)-(b.mcap_e||0)}[sort];
   const list=document.getElementById("list");
@@ -439,7 +442,7 @@ function render(){
         <td>${ytd}</td>
         <td class="l"><span class="tier">${esc(r.size||"—")}${r.mcap_e?r.mcap_e+"億":""}</span></td>
         <td class="l">${fin}</td>
-        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${myFlags(r)}${chanMark(r)}${sectMark(r)}</td></tr>`;
+        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${weightMark(r)}${myFlags(r)}${chanMark(r)}${sectMark(r)}</td></tr>`;
     }
     html+="</tbody></table>";
   }
@@ -462,6 +465,11 @@ function sectMark(r){
   const e=r.sect_excess, hot=e>=0.5;
   return `<span class="sect ${hot?'hot':'cold'}" title="同族群 ${r.sect_n} 檔今天平均超額 ${e>0?'+':''}${e}%，${r.sect_up}% 在漲（全市場為基準）">`
     +`族群 ${e>0?'+':''}${e}%</span>`;
+}
+
+/* 2026-10-03:權值股標示(上市普通股市值前 50 大,含金融、高價股)。只標示,不篩選。 */
+function weightMark(r){
+  return r.weight_rank ? `<span class="wt" title="上市普通股市值第 ${r.weight_rank} 大(當日收盤 × 股本)">權值股 #${r.weight_rank}</span>` : "";
 }
 
 function chanMark(r){
@@ -507,7 +515,8 @@ function detail(i){
   const buy=new Set(["回後買上漲","帶量上漲(價漲量增)","5/10黃金交叉"]);
   const chips=(r.hits||[]).map(h=>{
     const warn=h.includes("⚠"); const isbuy=[...buy].some(b=>h.includes(b.replace(/\(.*/,"")));
-    return `<span class="chip ${warn?'warn':isbuy?'buy':''}">${esc(h)}</span>`;}).join("");
+    return `<span class="chip ${warn?'warn':isbuy?'buy':''}">${esc(h)}</span>`;}).join("")
+    + (r.weight_rank ? `<span class="chip">權值股 · 市值第 ${r.weight_rank} 大</span>` : "");
   const life = r.above_life==null?'<span class="k">—</span>':
     r.above_life?'<span class="life-ok">站上生命線 ✓</span>':'<span class="life-no">跌破生命線 ✗</span>';
   /* ⭐ 2026-09-14:季線的**方向**跟「站上/跌破」是兩件事 ——
