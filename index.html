@@ -211,6 +211,7 @@
   <div class="meta">
     <span>🧭 <span class="wind" id="wind"></span></span>
     <span>🏭 熱門族群:<b id="hot"></b></span>
+    <span>🔥 族群熱度前 5:<b id="heat"></b></span>
     <span id="cnt"></span>
   </div>
 </header>
@@ -442,7 +443,7 @@ function render(){
         <td>${ytd}</td>
         <td class="l"><span class="tier">${esc(r.size||"—")}${r.mcap_e?r.mcap_e+"億":""}</span></td>
         <td class="l">${fin}</td>
-        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${weightMark(r)}${myFlags(r)}${chanMark(r)}${sectMark(r)}</td></tr>`;
+        <td class="l sigmini">${esc((r.hits||[]).join("、"))}${weightMark(r)}${myFlags(r)}${chanMark(r)}${sectMark(r)}${heatMark(r)}</td></tr>`;
     }
     html+="</tbody></table>";
   }
@@ -470,6 +471,13 @@ function sectMark(r){
 /* 2026-10-03:權值股標示(上市普通股市值前 50 大,含金融、高價股)。只標示,不篩選。 */
 function weightMark(r){
   return r.weight_rank ? `<span class="wt" title="上市普通股市值第 ${r.weight_rank} 大(當日收盤 × 股本)">權值股 #${r.weight_rank}</span>` : "";
+}
+
+function isTodayHeat(){ return DATA.date === TODAY; }
+/* 2026-10-06:族群熱度(產業 20 日漲幅在全部產業的排名,100 = 最熱;跟盤後零股推播的預設同一個定義)。只標示,不篩選。 */
+function heatMark(r){
+  if(r.sect_heat==null) return "";
+  return `<span class="sect ${r.sect_heat>=80?'hot':'cold'}" title="族群熱度:${esc(r.industry||"")} 近 20 日漲幅在全部產業排第 ${r.sect_heat} 百分位(100 = 最熱)">🔥${r.sect_heat}</span>`;
 }
 
 function chanMark(r){
@@ -516,7 +524,8 @@ function detail(i){
   const chips=(r.hits||[]).map(h=>{
     const warn=h.includes("⚠"); const isbuy=[...buy].some(b=>h.includes(b.replace(/\(.*/,"")));
     return `<span class="chip ${warn?'warn':isbuy?'buy':''}">${esc(h)}</span>`;}).join("")
-    + (r.weight_rank ? `<span class="chip">權值股 · 市值第 ${r.weight_rank} 大</span>` : "");
+    + (r.weight_rank ? `<span class="chip">權值股 · 市值第 ${r.weight_rank} 大</span>` : "")
+    + (r.sect_heat!=null ? `<span class="chip ${r.sect_heat>=80?'buy':''}">族群熱度 ${r.sect_heat}/100</span>` : "");
   const life = r.above_life==null?'<span class="k">—</span>':
     r.above_life?'<span class="life-ok">站上生命線 ✓</span>':'<span class="life-no">跌破生命線 ✗</span>';
   /* ⭐ 2026-09-14:季線的**方向**跟「站上/跌破」是兩件事 ——
@@ -605,6 +614,9 @@ document.getElementById("sort").onchange=render;
 function renderAll(){
   document.getElementById("wind").textContent = DATA.idxline || "—";
   document.getElementById("hot").textContent  = DATA.hot_sectors || "—";
+  document.getElementById("heat").textContent = (DATA.heat_top && DATA.heat_top.length)
+    ? DATA.heat_top.map(x=>x[0]+" "+x[1]).join("、")
+    : (DATA.heat_err ? (isTodayHeat() ? "今天沒有資料" : "所選日期沒有資料") : "—");   // 沒資料 ≠ 沒有熱門族群
   const tag = document.getElementById("dtag");
   const isToday = DATA.date === TODAY;
   tag.textContent = isToday ? "" : "歷史";
