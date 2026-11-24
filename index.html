@@ -16,7 +16,7 @@
       --warn:#f0a339; --warnbg:#2a2114; --chip:#232e3c; }
   }
   *{box-sizing:border-box}
-  /* ⭐ 2026-09-13 改版 B「左欄工具列」——
+  /*  2026-09-13 改版 B「左欄工具列」——
      大盤/篩選/計算機全部沉到左欄,表格拿到整個視窗高度。
      手機用 .rail{display:contents} 把左欄攤平成單欄 + 底部分頁,**同一份 DOM**。 */
   body{margin:0;font:15px/1.5 -apple-system,"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
@@ -65,11 +65,11 @@
     .mkt,.controls,.calc,header,.foot{padding-left:11px;padding-right:11px}
     .calc input,.calc select{width:80px}
   }
-  /* 🔴 2026-09-12 修的問題(手機整個清單看不到、高度 0px)在 B 版面裡的解法不同:
+  /*  2026-09-12 修的問題(手機整個清單看不到、高度 0px)在 B 版面裡的解法不同:
      不再是「放開高度鎖」,而是把左欄攤平 + 底部分頁。根因一樣 ——
      窄螢幕不該把三欄擠在一個視窗高度裡。 */
   @media(max-width:1100px){
-    /* ⭐ display:contents 讓 .rail 的小孩直接變成 body 的 flex 項目,
+    /*  display:contents 讓 .rail 的小孩直接變成 body 的 flex 項目,
        所以桌面的三欄和手機的單欄**共用同一份 DOM**,不用維護兩套。 */
     body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
     .rail{display:contents}
@@ -202,6 +202,23 @@
   .calc .ok{color:var(--green);font-weight:600}
   .calc .bad{color:var(--red);font-weight:600}
   .calc .note{width:100%;font-size:11.5px;color:var(--sub);margin-top:-2px}
+  /* ===== unslop 拋光(2026-11-24 他看過預覽後同意;unslop by @heydamir, CC BY 4.0)=====
+     方向:收盤後的研究台 —— 安靜的冷灰版面,顏色只留給漲跌(紅漲綠跌)和選中的那一檔 */
+  :root{ --bg:#f5f7fa; --card:#ffffff; --ink:#111827; --sub:#5b6475; --line:rgba(17,24,39,.09);
+    --accent:#1d4ed8; --accentbg:#eef2f8; --warn:#9a5b13; --warnbg:#f6f1e9; --chip:#eceff4; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0b0d14; --card:#11141c; --ink:#eef0f5; --sub:#8f97a8; --line:rgba(238,240,245,.08);
+      --accent:#7aa2ff; --accentbg:#1a1e28; --warn:#d9a441; --warnbg:#1f1c16; --chip:#1a1e28; }
+  }
+  body{font-variant-numeric:tabular-nums}
+  .rail h1,.mkt .pclose,.mkt .pchg,th,.nm,.flag,.dhead .p,.dhead .c,#daypick,
+  .calc .out .big,.calc .ok,.calc .bad,.calc .tag,.chip.buy,.chip.warn{font-weight:500}
+  .wind{background:transparent;padding:0;color:var(--ink);font-weight:500}
+  .grp{font-weight:500;letter-spacing:0;color:var(--ink);font-size:14px;margin:16px 8px 8px}
+  .wt{border:0;padding:0;margin-left:8px;color:var(--sub);font-weight:400;border-radius:0}
+  .chip{border-radius:6px;padding:2px 8px;font-size:12px}
+  .sect.hot{background:transparent;color:var(--sub);font-weight:400}
+  tbody tr.sel{box-shadow:inset 2px 0 0 var(--accent)}
 </style>
 </head>
 <body data-tab="list">
@@ -209,8 +226,8 @@
 <header>
   <h1>台股互動看板 <span class="d">· </span><select id="daypick" title="切換日期(最多回看一個月)"></select><span class="dtag" id="dtag"></span></h1>
   <div class="meta">
-    <span>🧭 <span class="wind" id="wind"></span></span>
-    <span>🏭 熱門族群:<b id="hot"></b></span>
+    <span> <span class="wind" id="wind"></span></span>
+    <span> 熱門族群:<b id="hot"></b></span>
     <span>🔥 族群熱度前 5:<b id="heat"></b></span>
     <span id="cnt"></span>
   </div>
@@ -230,7 +247,7 @@
   </select>
 </div>
 <div class="calc">
-  <span class="tag">🧮 停損計算機</span>
+  <span class="tag"> 停損計算機</span>
   <span class="fld">掛單價 <input type="number" id="c_price" step="0.05"></span>
   <span class="fld">停損
     <select id="c_pct">
@@ -270,7 +287,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M12 3v18"/></svg><span>計算機</span></button>
 </nav>
 <script>
-/* ⭐ 2026-09-04 加歷史紀錄:DAYS = {日期: 那天的資料},最多一個月。
+/*  2026-09-04 加歷史紀錄:DAYS = {日期: 那天的資料},最多一個月。
    **今天是完整資料(含 60 日 K 線),歷史日是精簡版(拿掉 K 線)。**
    理由:K 線陣列佔了整份 JSON 的 80%(120KB → 24KB)。
    一個月全存完整版 = 3MB,手機開會很痛;精簡版整包才 ~500KB。
@@ -295,9 +312,9 @@ const TODAY = "2026-11-23";
 let DATA = DAYS[TODAY];
 const GROUPS = [
   ["🔥 回後買上漲", h=>h.some(x=>x.includes("回後買上漲"))],
-  ["📈 帶量上漲（價漲量增）", h=>h.some(x=>x.includes("帶量上漲"))],
-  ["🟡 5/10 黃金交叉", h=>h.some(x=>x.includes("黃金交叉"))],
-  ["📊 均線多頭排列 / 其他", h=>true],
+  [" 帶量上漲（價漲量增）", h=>h.some(x=>x.includes("帶量上漲"))],
+  [" 5/10 黃金交叉", h=>h.some(x=>x.includes("黃金交叉"))],
+  [" 均線多頭排列 / 其他", h=>true],
 ];
 const BUYGROUPS = new Set([0,1,2]);
 function grpOf(hits){ for(let i=0;i<GROUPS.length;i++) if(GROUPS[i][1](hits)) return i; return 3; }
@@ -336,7 +353,7 @@ function calc(){
   CE("c_risk").innerHTML=`→ <b>${sh.toLocaleString()}</b> 股（${(sh*price).toLocaleString()} 元）`
     +` · 到停損風險 <b>${Math.round(risk).toLocaleString()}</b> 元 = 帳戶 <b>${own.toFixed(2)}%</b>`
     +` · 組合合計 <b>${tot.toFixed(2)}%</b>`
-    +` <span class="${ok?"ok":"bad"}">${ok?"✅ 在 4% 上限內":"❌ 超過 4% 上限"}</span>`;
+    +` <span class="${ok?"ok":"bad"}">${ok?"✓ 在 4% 上限內":"✗ 超過 4% 上限"}</span>`;
 }
 CALC_KEYS.forEach(k=>{
   const el=CE(k);
@@ -396,15 +413,15 @@ let selected = null;
 function instTxt(r){
   if(r.inst_streak==null||r.inst_flip==null) return "—";
   const st=r.inst_streak, fl=r.inst_flip;
-  const s1=st+"天"+(st>=1&&st<=3?"✅":(st===4?"⚪":(st>=5?"❌":"")));
-  const f1=fl+"%"+(fl<40?"✅":"❌");   // 2026-09-16 起 <40% 放行、≥40% 淘汰
+  const s1=st+"天"+(st>=1&&st<=3?"✓":(st===4?"":(st>=5?"✗":"")));
+  const f1=fl+"%"+(fl<40?"✓":"✗");   // 2026-09-16 起 <40% 放行、≥40% 淘汰
   return s1+" "+f1;
 }
 
 function myFlags(r){
   const o=[];
-  if((r.industry||"").includes("金融")) o.push("🚫金融股");
-  if((r.close||0)>250) o.push("🚫高股價");   // 2026-09-10 他要求拿掉括號那段
+  if((r.industry||"").includes("金融")) o.push("金融股");
+  if((r.close||0)>250) o.push("高股價");   // 2026-09-10 他要求拿掉括號那段
   return o.length ? ' <span class="flag">'+o.join("、")+'</span>' : "";
 }
 
@@ -528,7 +545,7 @@ function detail(i){
     + (r.sect_heat!=null ? `<span class="chip ${r.sect_heat>=80?'buy':''}">族群熱度 ${r.sect_heat}/100</span>` : "");
   const life = r.above_life==null?'<span class="k">—</span>':
     r.above_life?'<span class="life-ok">站上生命線 ✓</span>':'<span class="life-no">跌破生命線 ✗</span>';
-  /* ⭐ 2026-09-14:季線的**方向**跟「站上/跌破」是兩件事 ——
+  /*  2026-09-14:季線的**方向**跟「站上/跌破」是兩件事 ——
      股價可以在季線之上,而季線正在往下。後者 2026-09-14 起是第一關的硬淘汰。 */
   const dirTxt={"上":"向上 ↗","平":"走平 →","下":"向下 ↘"};
   const dirCls={"上":"life-ok","平":"","下":"life-no"};
@@ -538,7 +555,7 @@ function detail(i){
   /* 五日均額:只顯示,不篩選。2026-09-15 起下架門檻(全市場分年只有 3/6 同向)。 */
   const amt = r.amt5==null?"—":`${r.amt5} 億`
     +`<span class="k" style="margin-left:6px">僅參考,不篩選</span>`;
-  /* ⭐ 2026-09-14:上方「長黑爆大量」壓力。課程:「長黑爆大量是最大的壓力」,
+  /*  2026-09-14:上方「長黑爆大量」壓力。課程:「長黑爆大量是最大的壓力」,
      要把那根解決掉。三個關卡:最低價 → 二分之一價(平均成本)→ 最高價。
      還沒過二分之一價 = 第 1 關硬淘汰。 */
   const gap = (t)=> (r.close&&t) ? `(還差 ${((t-r.close)/r.close*100).toFixed(1)}%)` : "";
@@ -552,7 +569,7 @@ function detail(i){
     blk=`<span class="life-no">${r.blk_pos} ✗</span>`
        +`<span class="k" style="margin-left:6px">要過 ${r.blk_mid} ${gap(r.blk_mid)}</span>`;
     blknote=`<div class="chanote" style="margin:2px 0 8px">
-      🧱 <b>上方有一道還沒解決的牆</b>：250 個交易日內出現過一根<b>長黑爆大量</b>
+       <b>上方有一道還沒解決的牆</b>：250 個交易日內出現過一根<b>長黑爆大量</b>
       （最低 ${r.blk_low}／二分之一 <b>${r.blk_mid}</b>／最高 ${r.blk_high}），
       收盤一直沒有站上去過。<b>收盤要先過二分之一價 ${r.blk_mid}</b> —— 那是那天買進的人的平均成本
       —— 這一關才算解決，${r.close ? `現在還差 <b>${((r.blk_mid-r.close)/r.close*100).toFixed(1)}%</b>` : ""}。
@@ -563,7 +580,7 @@ function detail(i){
   const fin = r.fin_ratio==null?"—":
     `融資使用率 <b>${r.fin_ratio}%</b>　日增 <b class="${cls(r.fin_chg)}">${r.fin_chg==null?"—":sgn(r.fin_chg)+"%"}</b>`
     +(r.fin_flag?`　<span class="flag">⚠${esc(r.fin_flag)}</span>`:"");
-  const news = r.news?`<a class="news" href="${esc(r.news.link)}" target="_blank">📰 ${esc(r.news.title)}</a>`:"";
+  const news = r.news?`<a class="news" href="${esc(r.news.link)}" target="_blank"> ${esc(r.news.title)}</a>`:"";
   document.getElementById("detail").innerHTML=`
     <div class="dhead">
       <span class="nm" style="font-size:22px">${esc(r.name)}</span>
@@ -572,7 +589,7 @@ function detail(i){
       <span class="c ${cls(r.chg_pct)}">${sgn(r.chg_pct)}%</span>
     </div>
     ${r.sect_excess!=null ? `<div class="chanote" style="margin:2px 0 8px">
-      🏭 同族群（${esc(r.industry||"—")}，${r.sect_n} 檔）今天<b>超額 ${r.sect_excess>0?"+":""}${r.sect_excess}%</b>、<b>${r.sect_up}%</b> 在漲
+       同族群（${esc(r.industry||"—")}，${r.sect_n} 檔）今天<b>超額 ${r.sect_excess>0?"+":""}${r.sect_excess}%</b>、<b>${r.sect_up}%</b> 在漲
       <span style="opacity:.7">— 以全市場 1,300+ 檔為基準。<b>僅供參考,不參與篩選</b>(全市場回測效果不穩定)。</span>
     </div>` : ''}
     ${blknote}
