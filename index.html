@@ -219,12 +219,48 @@
   .chip{border-radius:6px;padding:2px 8px;font-size:12px}
   .sect.hot{background:transparent;color:var(--sub);font-weight:400}
   tbody tr.sel{box-shadow:inset 2px 0 0 var(--accent)}
+
+  /* ===== 深淺色開關(2026-11-27 他看過試作後同意)=====
+     沒選過 = 跟系統(系統半路切換也跟著變);選過存 localStorage 並寫 data-theme。
+     data-eff = 目前實際顯示的模式,只給開關本身和少數元件用。標題一行 + 開關靠右,日期另起一行 */
+  :root[data-theme="light"]{ --bg:#f5f7fa; --card:#ffffff; --ink:#111827; --sub:#5b6475; --line:rgba(17,24,39,.09);
+    --red:#d62828; --green:#128a4b; --accent:#1d4ed8; --accentbg:#eef2f8; --warn:#9a5b13; --warnbg:#f6f1e9; --chip:#eceff4; color-scheme:light }
+  :root[data-theme="dark"]{ --bg:#0b0d14; --card:#11141c; --ink:#eef0f5; --sub:#8f97a8; --line:rgba(238,240,245,.08);
+    --red:#ff5a5a; --green:#3ddc84; --accent:#7aa2ff; --accentbg:#1a1e28; --warn:#d9a441; --warnbg:#1f1c16; --chip:#1a1e28; color-scheme:dark }
+  body{transition:background .45s cubic-bezier(.22,1,.36,1),color .45s cubic-bezier(.22,1,.36,1)}
+  .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+  .hrow h1{margin:0}
+  .dline{display:flex;align-items:center;margin:0 0 6px}
+  .tsw{--tk:#0d0e12;--tin:rgba(0,0,0,.85);--kb:#1b1d23;--gl:rgba(170,200,255,.75);--ic:#e8ecf5;
+    position:relative;flex:none;width:60px;height:32px;border-radius:16px;border:0;padding:0;cursor:pointer;
+    background:var(--tk);box-shadow:inset 0 3px 7px var(--tin),inset 0 -1px 0 rgba(255,255,255,.06);transition:background .45s}
+  :root[data-eff="light"] .tsw{--tk:#dfe2e7;--tin:rgba(0,0,0,.18);--kb:#fbfbfc;--gl:rgba(255,190,90,.85);--ic:#f0a531}
+  .tsw:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .tsw .kn{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:9px;background:var(--kb);display:grid;place-items:center;
+    box-shadow:0 0 0 1px var(--gl),0 0 9px var(--gl),0 4px 9px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);
+    transition:transform .5s cubic-bezier(.22,1,.36,1),background .45s,box-shadow .45s}
+  :root[data-eff="light"] .tsw .kn{transform:translateX(28px);
+    box-shadow:0 0 0 1px var(--gl),0 0 10px var(--gl),0 3px 7px rgba(0,0,0,.12),inset 0 1px 0 #fff}
+  .tsw svg{width:15px;height:15px;fill:var(--ic);transition:opacity .3s,transform .5s cubic-bezier(.22,1,.36,1)}
+  .tsw .su{position:absolute;opacity:0;transform:rotate(-90deg)}
+  :root[data-eff="light"] .tsw .mo{opacity:0;transform:rotate(90deg)}
+  :root[data-eff="light"] .tsw .su{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){body,.tsw,.tsw .kn,.tsw svg{transition:none}}
+  :root[data-eff="dark"] .dtag.on{color:#14161b}   /* 白芷 P2:深色金底配白字對比只有 2.25:1 */
 </style>
+<script>(function(){var r=document.documentElement,t;try{t=localStorage.getItem("dash-theme")}catch(e){}
+if(t==="light"||t==="dark")r.dataset.theme=t;
+r.dataset.eff=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");})();</script>
 </head>
 <body data-tab="list">
 <aside class="rail">
 <header>
-  <h1>台股互動看板 <span class="d">· </span><select id="daypick" title="切換日期(最多回看一個月)"></select><span class="dtag" id="dtag"></span></h1>
+  <div class="hrow"><h1>台股互動看板</h1>
+  <button class="tsw" id="tsw" type="button" aria-label="深色模式" aria-pressed="true" title="切換深色 / 淺色"><span class="kn">
+    <svg class="mo" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges"><path d="M4 1h3v1H4zM3 2h2v1H3zM2 3h2v1H2zM2 4h2v1H2zM1 5h3v1H1zM1 6h3v1H1zM2 7h3v1H2zM2 8h4v1H2zM3 9h6v1H3zM4 10h4v1H4zM9 7h1v1H9zM10 6h1v1h-1z"/></svg>
+    <svg class="su" viewBox="0 0 12 12" aria-hidden="true" shape-rendering="crispEdges"><path d="M5 0h2v1H5zM5 11h2v1H5zM0 5h1v2H0zM11 5h1v2h-1zM1 1h1v1H1zM10 1h1v1h-1zM1 10h1v1H1zM10 10h1v1h-1zM4 3h4v1H4zM3 4h6v4H3zM4 8h4v1H4z"/></svg>
+  </span></button></div>
+  <div class="dline"><select id="daypick" title="切換日期(最多回看一個月)"></select><span class="dtag" id="dtag"></span></div>
   <div class="meta">
     <span> <span class="wind" id="wind"></span></span>
     <span> 熱門族群:<b id="hot"></b></span>
@@ -657,5 +693,11 @@ pick.onchange = () => { DATA = DAYS[pick.value]; renderAll(); };
 
 renderAll();
 </script>
+<script>(function(){var r=document.documentElement,b=document.getElementById("tsw"),mq=matchMedia("(prefers-color-scheme: dark)");if(!b)return;
+function eff(){return r.dataset.theme||(mq.matches?"dark":"light")}
+function sync(){var e=eff();r.dataset.eff=e;b.setAttribute("aria-pressed",e==="dark")}
+sync();
+(mq.addEventListener?mq.addEventListener.bind(mq,"change"):mq.addListener.bind(mq))(function(){if(!r.dataset.theme)sync()});
+b.addEventListener("click",function(){var t=eff()==="dark"?"light":"dark";r.dataset.theme=t;try{localStorage.setItem("dash-theme",t)}catch(e){}sync()});})();</script>
 </body>
 </html>
